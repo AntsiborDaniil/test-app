@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react';
-import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { FilterTabs } from '../components/FilterTabs';
 import { MatchCard } from '../components/MatchCard';
+import { MatchCardSkeleton } from '../components/MatchCardSkeleton';
 import { UpdatedAgo } from '../components/UpdatedAgo';
 import { filterMatches, type MatchFilter } from '../filterMatches';
 import { useFavorites } from '../hooks/useFavorites';
@@ -27,10 +28,7 @@ export function MatchesScreen() {
       <View style={styles.container}>
         <Text style={styles.title}>{title}</Text>
         {isLoading ? (
-          <View style={styles.center}>
-            <ActivityIndicator size="large" />
-            <Text style={styles.hint}>Загружаем матчи…</Text>
-          </View>
+          <LoadingState />
         ) : (
           <ErrorState message={error ?? 'Не удалось загрузить матчи.'} onRetry={retry} />
         )}
@@ -103,6 +101,25 @@ export function MatchesScreen() {
   );
 }
 
+const SKELETON_COUNT = 4;
+
+function LoadingState() {
+  return (
+    <View
+      style={styles.skeletons}
+      accessible
+      accessibilityRole="progressbar"
+      accessibilityLabel="Загружаем матчи"
+      accessibilityState={{ busy: true }}
+    >
+      <Text style={styles.hint}>Загружаем матчи…</Text>
+      {Array.from({ length: SKELETON_COUNT }, (_, index) => (
+        <MatchCardSkeleton key={index} />
+      ))}
+    </View>
+  );
+}
+
 function ErrorState({ message, onRetry }: { message: string; onRetry: () => void }) {
   return (
     <View style={styles.center}>
@@ -134,6 +151,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 12,
     padding: 24,
+  },
+  skeletons: {
+    gap: 8,
   },
   grow: {
     flexGrow: 1,

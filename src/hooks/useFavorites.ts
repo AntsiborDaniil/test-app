@@ -1,8 +1,15 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { loadFavorites, saveFavorites } from '../favoritesStorage';
 
-// Избранные матчи (по id). Хранятся только в памяти, пока открыто приложение.
+// Избранные матчи (по id). Сохраняются в localStorage и переживают перезагрузку страницы.
 export function useFavorites() {
-  const [favorites, setFavorites] = useState<string[]>([]);
+  // Ленивая инициализация: читаем хранилище один раз, при первом рендере,
+  // поэтому звёзды сразу горят правильно, без мигания.
+  const [favorites, setFavorites] = useState<string[]>(loadFavorites);
+
+  useEffect(() => {
+    saveFavorites(favorites);
+  }, [favorites]);
 
   // indexOf возвращает -1, если id нет, и 0 для первого элемента —
   // Boolean() от этого давал true для чужих матчей и false для первого избранного.
