@@ -4,16 +4,17 @@ import { useState } from 'react';
 export function useFavorites() {
   const [favorites, setFavorites] = useState<string[]>([]);
 
-  const isFavorite = (id: string) => Boolean(favorites.indexOf(id));
+  // indexOf возвращает -1, если id нет, и 0 для первого элемента —
+  // Boolean() от этого давал true для чужих матчей и false для первого избранного.
+  const isFavorite = (id: string) => favorites.includes(id);
 
+  // Новый массив вместо push/splice: React сравнивает состояние по ссылке
+  // и не перерисовывает экран, если ему отдали тот же самый массив.
+  // Функциональная форма берёт актуальное состояние, даже при быстрых нажатиях подряд.
   const toggle = (id: string) => {
-    const index = favorites.indexOf(id);
-    if (index === -1) {
-      favorites.push(id);
-    } else {
-      favorites.splice(index, 1);
-    }
-    setFavorites(favorites);
+    setFavorites((prev) =>
+      prev.includes(id) ? prev.filter((favoriteId) => favoriteId !== id) : [...prev, id],
+    );
   };
 
   return { favorites, isFavorite, toggle };

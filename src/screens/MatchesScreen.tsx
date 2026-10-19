@@ -2,12 +2,16 @@ import { useMemo, useState } from 'react';
 import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { FilterTabs } from '../components/FilterTabs';
 import { MatchCard } from '../components/MatchCard';
+import { UpdatedAgo } from '../components/UpdatedAgo';
 import { filterMatches, type MatchFilter } from '../filterMatches';
+import { useFavorites } from '../hooks/useFavorites';
 import { useMatches } from '../hooks/useMatches';
 
 // Экран «Матчи тура» — задание в README.md, часть 1.
 export function MatchesScreen() {
-  const { matches, round, error, isLoading, isRefreshing, retry, refresh } = useMatches();
+  const { matches, round, error, isLoading, isRefreshing, updatedAt, retry, refresh } =
+    useMatches();
+  const { favorites, isFavorite, toggle } = useFavorites();
   const [filter, setFilter] = useState<MatchFilter>('all');
 
   const visibleMatches = useMemo(
@@ -48,12 +52,32 @@ export function MatchesScreen() {
         </View>
       )}
 
+      {/* Кнопка нужна и на вебе: pull-to-refresh там не работает. */}
+      <View style={styles.toolbar}>
+        {updatedAt && <UpdatedAgo since={updatedAt} />}
+        <Pressable
+          onPress={refresh}
+          disabled={isRefreshing}
+          accessibilityRole="button"
+          accessibilityState={{ disabled: isRefreshing }}
+        >
+          <Text style={[styles.link, isRefreshing && styles.disabled]}>
+            {isRefreshing ? 'Обновляем…' : 'Обновить'}
+          </Text>
+        </Pressable>
+      </View>
+
       <FilterTabs value={filter} onChange={setFilter} />
 
       <FlatList
         data={visibleMatches}
         keyExtractor={(match) => match.id}
-        renderItem={({ item }) => <MatchCard match={item} />}
+        renderItem={({ item }) => (
+          <MatchCard match={item} isFavorite={isFavorite(item.id)} onToggleFavorite={toggle} />
+        )}
+        // FlatList перерисовывает строки только при смене data/extraData —
+        // без этого звёздочка не обновилась бы после нажатия.
+        extraData={favorites}
         ItemSeparatorComponent={Separator}
         refreshing={isRefreshing}
         onRefresh={refresh}
@@ -149,6 +173,15 @@ const styles = StyleSheet.create({
   link: {
     color: '#ef3124',
     fontWeight: '600',
+  },
+  disabled: {
+    color: '#9ca3af',
+  },
+  toolbar: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: 12,
   },
   separator: {
     height: 8,
