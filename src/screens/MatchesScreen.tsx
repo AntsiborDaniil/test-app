@@ -1,10 +1,19 @@
+import { useMemo, useState } from 'react';
 import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { FilterTabs } from '../components/FilterTabs';
 import { MatchCard } from '../components/MatchCard';
+import { filterMatches, type MatchFilter } from '../filterMatches';
 import { useMatches } from '../hooks/useMatches';
 
 // Экран «Матчи тура» — задание в README.md, часть 1.
 export function MatchesScreen() {
   const { matches, round, error, isLoading, isRefreshing, retry, refresh } = useMatches();
+  const [filter, setFilter] = useState<MatchFilter>('all');
+
+  const visibleMatches = useMemo(
+    () => (matches ? filterMatches(matches, filter) : []),
+    [matches, filter],
+  );
 
   const title = round != null ? `Матчи ${round} тура` : 'Матчи тура';
 
@@ -39,19 +48,31 @@ export function MatchesScreen() {
         </View>
       )}
 
+      <FilterTabs value={filter} onChange={setFilter} />
+
       <FlatList
-        data={matches}
+        data={visibleMatches}
         keyExtractor={(match) => match.id}
         renderItem={({ item }) => <MatchCard match={item} />}
         ItemSeparatorComponent={Separator}
         refreshing={isRefreshing}
         onRefresh={refresh}
-        contentContainerStyle={matches.length === 0 && styles.grow}
+        contentContainerStyle={visibleMatches.length === 0 && styles.grow}
         ListEmptyComponent={
-          <View style={styles.center}>
-            <Text style={styles.emptyTitle}>Матчей нет</Text>
-            <Text style={styles.hint}>В этом туре пока не запланировано ни одного матча.</Text>
-          </View>
+          // Тур пустой целиком — или пусто только в выбранной вкладке.
+          matches.length === 0 ? (
+            <View style={styles.center}>
+              <Text style={styles.emptyTitle}>Матчей нет</Text>
+              <Text style={styles.hint}>В этом туре пока не запланировано ни одного матча.</Text>
+            </View>
+          ) : (
+            <View style={styles.center}>
+              <Text style={styles.hint}>В этой вкладке матчей нет.</Text>
+              <Pressable onPress={() => setFilter('all')} accessibilityRole="button">
+                <Text style={styles.link}>Показать все</Text>
+              </Pressable>
+            </View>
+          )
         }
       />
     </View>
